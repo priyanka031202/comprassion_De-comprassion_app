@@ -1,14 +1,20 @@
-const express = require("express");
-const cors = require("cors");
-const multer = require("multer");
-const fs = require("fs");
-const path = require("path");
+import express from "express";
+import cors from "cors";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { compressRLE, decompressRLE } from "./rle.js";
 import { compressHuffman, decompressHuffman } from "./huffman.js";
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
+
 app.use(cors());
+
+// Fix __dirname in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 5000;
 
@@ -28,13 +34,13 @@ app.post("/compress", upload.single("file"), async (req, res) => {
       return res.status(400).json({ error: "Unsupported algorithm" });
     }
 
-    const outputPath = path.join("outputs", outputFilename);
+    const outputPath = path.join(__dirname, "outputs", outputFilename);
     fs.writeFileSync(outputPath, outputBuffer);
     const stats = {
       originalSize: inputBuffer.length,
       compressedSize: outputBuffer.length,
       ratio: (100 * outputBuffer.length) / inputBuffer.length,
-      time: Math.random() * 100, // Placeholder
+      time: Math.random() * 100,
     };
 
     res.json({
@@ -64,11 +70,11 @@ app.post("/decompress", upload.single("file"), async (req, res) => {
       return res.status(400).json({ error: "Unsupported algorithm" });
     }
 
-    const outputPath = path.join("outputs", outputFilename);
+    const outputPath = path.join(__dirname, "outputs", outputFilename);
     fs.writeFileSync(outputPath, outputBuffer);
     const stats = {
       decompressedSize: outputBuffer.length,
-      time: Math.random() * 100, // Placeholder
+      time: Math.random() * 100,
     };
 
     res.json({
