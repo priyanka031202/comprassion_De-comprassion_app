@@ -12,11 +12,11 @@
 
 #### Backend (where the file is processed): Made using Node.js + Express
 
-###Deployment:
+### Deployment:
 
-####Frontend is hosted on Vercel
+#### Frontend is hosted on Vercel
 
-####Backend is hosted on Render
+#### Backend is hosted on Render
 
 
 ### How it works :
@@ -38,7 +38,7 @@
 ### project-root/
 
  1. frontend
-    - App.jsx
+    -App.jsx
 
  2. backend
     -server.js
@@ -59,6 +59,6 @@
          node server.js
 
 ###  Links for deployed frontend and backend:
-#### 1. Frontend : comprassion-de-comprassion-app-5bu7.vercel.app
+#### 1. Frontend : https://comprassion-de-comprassion-app-5bu7.vercel.app/
 #### 2. Backend : https://comprassion-de-comprassion-app-2.onrender.com
          
