@@ -2,8 +2,8 @@ import { useState } from "react";
 
 export default function App() {
   const [file, setFile] = useState(null);
-  const [mode, setMode] = useState("compress"); 
-  const [algorithm, setAlgorithm] = useState("rle"); 
+  const [mode, setMode] = useState("compress");
+  const [algorithm, setAlgorithm] = useState("rle");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -25,7 +25,7 @@ export default function App() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/${mode}`,
+        `https://comprassion-de-comprassion-app-2.onrender.com/${mode}`,
         {
           method: "POST",
           body: formData,
@@ -51,7 +51,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-xl mx-auto bg-white p-6 rounded-lg shadow">
         <h1 className="text-2xl font-bold mb-4 text-center">
-           File {mode === "compress" ? "Compression" : "Decompression"} App
+          File {mode === "compress" ? "Compression" : "Decompression"} App
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -101,8 +101,8 @@ export default function App() {
                 ? "Compressing..."
                 : "Decompressing..."
               : mode === "compress"
-              ? " Compress File"
-              : " Decompress File"}
+              ? "Compress File"
+              : "Decompress File"}
           </button>
         </form>
 
@@ -112,22 +112,22 @@ export default function App() {
 
         {result && (
           <div className="mt-6 bg-gray-50 p-4 border rounded">
-            <h2 className="font-semibold text-lg mb-2"> Success</h2>
+            <h2 className="font-semibold text-lg mb-2">Success</h2>
             <p>{result.message}</p>
             <ul className="mt-2 text-sm text-gray-700 space-y-1">
               {result.stats.originalSize !== undefined && (
-                <li> Original Size: {result.stats.originalSize} bytes</li>
+                <li>Original Size: {result.stats.originalSize} bytes</li>
               )}
               {result.stats.compressedSize !== undefined && (
-                <li> Compressed Size: {result.stats.compressedSize} bytes</li>
+                <li>Compressed Size: {result.stats.compressedSize} bytes</li>
               )}
               {result.stats.decompressedSize !== undefined && (
-                <li> Decompressed Size: {result.stats.decompressedSize} bytes</li>
+                <li>Decompressed Size: {result.stats.decompressedSize} bytes</li>
               )}
               {result.stats.ratio !== undefined && (
-                <li> Compression Ratio: {result.stats.ratio.toFixed(2)}%</li>
+                <li>Compression Ratio: {result.stats.ratio.toFixed(2)}%</li>
               )}
-              <li> Processing Time: {result.stats.time} ms</li>
+              <li>Processing Time: {result.stats.time} ms</li>
             </ul>
 
             <a
