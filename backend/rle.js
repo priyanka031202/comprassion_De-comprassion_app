@@ -1,26 +1,36 @@
-
-export function rleCompress(data) {
+// RLE compression
+export function compressRLE(inputBuffer) {
+  const input = inputBuffer.toString("utf-8");
   let compressed = "";
-  let count = 1;
 
-  for (let i = 1; i <= data.length; i++) {
-    if (data[i] === data[i - 1]) {
+  let count = 1;
+  for (let i = 0; i < input.length; i++) {
+    while (i + 1 < input.length && input[i] === input[i + 1]) {
       count++;
-    } else {
-      compressed += data[i - 1] + count;
-      count = 1;
+      i++;
     }
+    compressed += input[i] + count;
+    count = 1;
   }
 
-  return compressed;
+  return Buffer.from(compressed, "utf-8");
 }
 
-export function rleDecompress(data) {
+// RLE decompression
+export function decompressRLE(compressedBuffer) {
+  const compressed = compressedBuffer.toString("utf-8");
   let decompressed = "";
-  for (let i = 0; i < data.length; i += 2) {
-    const char = data[i];
-    const count = parseInt(data[i + 1]);
+
+  for (let i = 0; i < compressed.length; i += 2) {
+    const char = compressed[i];
+    const count = parseInt(compressed[i + 1], 10);
+
+    if (isNaN(count)) {
+      throw new Error("Invalid compressed format");
+    }
+
     decompressed += char.repeat(count);
   }
-  return decompressed;
+
+  return Buffer.from(decompressed, "utf-8");
 }
