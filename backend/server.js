@@ -1,108 +1,93 @@
-// ✅ server.js (Backend)
-const express = require("express");
-const multer = require("multer");
-const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
+import express from "express";
+import cors from "cors";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { compressRLE, decompressRLE } from "./rle.js";
+import { compressHuffman, decompressHuffman } from "./huffman.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use("/files", express.static(path.join(__dirname, "files")));
 
-// ✅ Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
-// ✅ Create uploads folder if not exists
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
-}
+app.post("/compress", upload.single("file"), async (req, res) => {
+  const file = req.file;
+  const algorithm = req.body.algorithm;
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads"),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
-});
+  if (!file) return res.status(400).json({ error: "No file uploaded." });
 
-const upload = multer({ storage });
+  const originalBuffer = file.buffer;
+  const startTime = Date.now();
+  let compressed, fileName;
 
-function runLengthCompress(inputPath, outputPath) {
-  const input = fs.readFileSync(inputPath, "utf8");
-  let compressed = "";
-  let count = 1;
-  for (let i = 0; i < input.length; i++) {
-    while (i + 1 < input.length && input[i] === input[i + 1]) {
-      count++;
-      i++;
-    }
-    compressed += input[i] + count;
-    count = 1;
+  if (algorithm === "rle") {
+    compressed = compressRLE(originalBuffer);
+    fileName = `compressed_rle_${Date.now()}.bin`;
+  } else if (algorithm === "huffman") {
+    compressed = compressHuffman(originalBuffer);
+    fileName = `compressed_huffman_${Date.now()}.bin`;
+  } else {
+    return res.status(400).json({ error: "Invalid algorithm." });
   }
-  fs.writeFileSync(outputPath, compressed);
-}
 
-function runLengthDecompress(inputPath, outputPath) {
-  const input = fs.readFileSync(inputPath, "utf8");
-  let decompressed = "";
-  for (let i = 0; i < input.length; i += 2) {
-    const char = input[i];
-    const count = parseInt(input[i + 1]);
-    decompressed += char.repeat(count);
-  }
-  fs.writeFileSync(outputPath, decompressed);
-}
+  const filePath = path.join(__dirname, "files", fileName);
+  fs.writeFileSync(filePath, compressed);
 
-app.post("/compress", upload.single("file"), (req, res) => {
-  const inputPath = req.file.path;
-  const outputFilename = `compressed-${req.file.originalname}`;
-  const outputPath = path.join("uploads", outputFilename);
-  const start = Date.now();
-
-  runLengthCompress(inputPath, outputPath);
-
-  const duration = Date.now() - start;
-  const inputSize = fs.statSync(inputPath).size;
-  const outputSize = fs.statSync(outputPath).size;
-  const ratio = ((1 - outputSize / inputSize) * 100).toFixed(2);
-
-  const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${outputFilename}`;
-
+  const time = Date.now() - startTime;
   res.json({
-    message: "File compressed successfully!",
-    fileUrl,
+    message: "File compressed successfully.",
+    fileUrl: `/files/${fileName}`,
     stats: {
-      originalSize: inputSize,
-      compressedSize: outputSize,
-      ratio,
-      time: duration,
+      originalSize: originalBuffer.length,
+      compressedSize: compressed.length,
+      ratio: (compressed.length / originalBuffer.length) * 100,
+      time,
     },
   });
 });
 
-app.post("/decompress", upload.single("file"), (req, res) => {
-  const inputPath = req.file.path;
-  const outputFilename = `decompressed-${req.file.originalname}`;
-  const outputPath = path.join("uploads", outputFilename);
-  const start = Date.now();
+app.post("/decompress", upload.single("file"), async (req, res) => {
+  const file = req.file;
+  const algorithm = req.body.algorithm;
 
-  runLengthDecompress(inputPath, outputPath);
+  if (!file) return res.status(400).json({ error: "No file uploaded." });
 
-  const duration = Date.now() - start;
-  const inputSize = fs.statSync(inputPath).size;
-  const outputSize = fs.statSync(outputPath).size;
+  const compressedBuffer = file.buffer;
+  const startTime = Date.now();
+  let decompressed, fileName;
 
-  const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${outputFilename}`;
+  if (algorithm === "rle") {
+    decompressed = decompressRLE(compressedBuffer);
+    fileName = `decompressed_rle_${Date.now()}.bin`;
+  } else if (algorithm === "huffman") {
+    decompressed = decompressHuffman(compressedBuffer);
+    fileName = `decompressed_huffman_${Date.now()}.bin`;
+  } else {
+    return res.status(400).json({ error: "Invalid algorithm." });
+  }
 
+  const filePath = path.join(__dirname, "files", fileName);
+  fs.writeFileSync(filePath, decompressed);
+
+  const time = Date.now() - startTime;
   res.json({
-    message: "File decompressed successfully!",
-    fileUrl,
+    message: "File decompressed successfully.",
+    fileUrl: `/files/${fileName}`,
     stats: {
-      decompressedSize: outputSize,
-      time: duration,
+      decompressedSize: decompressed.length,
+      time,
     },
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(` Server is running on http://localhost:${PORT}`);
 });
