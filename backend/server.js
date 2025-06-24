@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { compressRLE, decompressRLE } from "./rle.js";
-import { huffmanCompress, huffmanDecompress } from "./huffman.js";
+import { compressHuffman, decompressHuffman } from "./huffman.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
