@@ -1,73 +1,91 @@
-// backend/huffman.js
+// Huffman encoding utility functions
 
-// Simple frequency map generator
 function buildFrequencyMap(data) {
-  const map = new Map();
-  for (let char of data) {
-    map.set(char, (map.get(char) || 0) + 1);
+  const freqMap = {};
+  for (const char of data) {
+    freqMap[char] = (freqMap[char] || 0) + 1;
   }
-  return map;
+  return freqMap;
 }
 
-// Build the Huffman Tree
 function buildHuffmanTree(freqMap) {
-  const heap = [...freqMap.entries()].map(([char, freq]) => ({ char, freq, left: null, right: null }));
+  const nodes = Object.entries(freqMap).map(([char, freq]) => ({
+    char,
+    freq,
+    left: null,
+    right: null,
+  }));
 
-  while (heap.length > 1) {
-    heap.sort((a, b) => a.freq - b.freq);
-    const left = heap.shift();
-    const right = heap.shift();
-    heap.push({
+  while (nodes.length > 1) {
+    nodes.sort((a, b) => a.freq - b.freq);
+    const left = nodes.shift();
+    const right = nodes.shift();
+    const newNode = {
       char: null,
       freq: left.freq + right.freq,
       left,
-      right
-    });
+      right,
+    };
+    nodes.push(newNode);
   }
 
-  return heap[0];
+  return nodes[0];
 }
 
-// Build binary codes from Huffman Tree
-function buildCodes(tree, path = "", map = {}) {
-  if (!tree) return;
-  if (tree.char !== null) {
-    map[tree.char] = path;
+function buildCodeMap(node, prefix = "", map = {}) {
+  if (node.char !== null) {
+    map[node.char] = prefix;
+  } else {
+    buildCodeMap(node.left, prefix + "0", map);
+    buildCodeMap(node.right, prefix + "1", map);
   }
-  buildCodes(tree.left, path + "0", map);
-  buildCodes(tree.right, path + "1", map);
   return map;
 }
 
-export function huffmanCompress(data) {
-  const freqMap = buildFrequencyMap(data);
-  const tree = buildHuffmanTree(freqMap);
-  const codeMap = buildCodes(tree);
-
-  const encoded = [...data].map(char => codeMap[char]).join("");
-
-  // Store the tree as a string to reconstruct it later (basic serialization)
-  const serializedMap = JSON.stringify(Object.fromEntries(codeMap));
-  return {
-    compressedData: encoded,
-    codeMap: serializedMap
-  };
+function encodeData(data, codeMap) {
+  return data.split("").map(char => codeMap[char]).join("");
 }
 
-export function huffmanDecompress(encodedData, codeMapStr) {
-  const codeMap = JSON.parse(codeMapStr);
-  const reverseMap = Object.fromEntries(Object.entries(codeMap).map(([k, v]) => [v, k]));
-
-  let current = "";
-  let decoded = "";
-
-  for (let bit of encodedData) {
-    current += bit;
-    if (reverseMap[current]) {
-      decoded += reverseMap[current];
-      current = "";
+function decodeData(encodedData, tree) {
+  let result = "";
+  let node = tree;
+  for (const bit of encodedData) {
+    node = bit === "0" ? node.left : node.right;
+    if (node.char !== null) {
+      result += node.char;
+      node = tree;
     }
   }
-
-  return decoded;
+  return result;
 }
+
+// Compression
+function compressHuffman(buffer) {
+  const data = buffer.toString("utf8");
+  const freqMap = buildFrequencyMap(data);
+  const tree = buildHuffmanTree(freqMap);
+  const codeMap = buildCodeMap(tree);
+  const encoded = encodeData(data, codeMap);
+
+  const metadata = JSON.stringify(freqMap);
+  const metadataLength = Buffer.byteLength(metadata);
+
+  const finalBuffer = Buffer.concat([
+    Buffer.from(metadataLength.toString().padStart(8, "0")), // 8-byte length prefix
+    Buffer.from(metadata), // metadata
+    Buffer.from(encoded, "binary"), // encoded content
+  ]);
+
+  return finalBuffer;
+}
+
+// Decompression
+function decompressHuffman(buffer) {
+  const metadataLength = parseInt(buffer.slice(0, 8).toString(), 10);
+  const metadata = JSON.parse(buffer.slice(8, 8 + metadataLength).toString());
+  const tree = buildHuffmanTree(metadata);
+  const encodedData = buffer.slice(8 + metadataLength).toString();
+  return decodeData(encodedData, tree);
+}
+
+export { compressHuffman, decompressHuffman };
