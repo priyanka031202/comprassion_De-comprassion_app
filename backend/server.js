@@ -1,5 +1,7 @@
 // server.js
 import express from "express";
+import cors from "cors";
+
 import multer from "multer";
 import fs from "fs";
 import path from "path";
@@ -28,6 +30,7 @@ function getStats(originalBuffer, outputBuffer, startTime) {
     time: Date.now() - startTime,
   };
 }
+app.use(cors());
 
 app.post("/compress", upload.single("file"), (req, res) => {
   try {
