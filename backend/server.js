@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { compressRLE, decompressRLE } from "./rle.js";
-import { compressHuffman, decompressHuffman } from "./huffman.js";
+import { huffmanCompress, huffmanDecompress } from "./huffman.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,7 +32,11 @@ app.post("/compress", upload.single("file"), async (req, res) => {
     compressed = compressRLE(originalBuffer);
     fileName = `compressed_rle_${Date.now()}.bin`;
   } else if (algorithm === "huffman") {
-    compressed = compressHuffman(originalBuffer);
+    const { compressedData, codeMap } = huffmanCompress(originalBuffer);
+    compressed = Buffer.concat([
+      Buffer.from(JSON.stringify(codeMap) + "\n"),
+      compressedData
+    ]);
     fileName = `compressed_huffman_${Date.now()}.bin`;
   } else {
     return res.status(400).json({ error: "Invalid algorithm." });
@@ -68,7 +72,10 @@ app.post("/decompress", upload.single("file"), async (req, res) => {
     decompressed = decompressRLE(compressedBuffer);
     fileName = `decompressed_rle_${Date.now()}.bin`;
   } else if (algorithm === "huffman") {
-    decompressed = decompressHuffman(compressedBuffer);
+    const [meta, ...dataParts] = compressedBuffer.toString().split("\n");
+    const codeMap = JSON.parse(meta);
+    const encodedData = Buffer.from(dataParts.join("\n"));
+    decompressed = huffmanDecompress(encodedData, codeMap);
     fileName = `decompressed_huffman_${Date.now()}.bin`;
   } else {
     return res.status(400).json({ error: "Invalid algorithm." });
@@ -89,5 +96,5 @@ app.post("/decompress", upload.single("file"), async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(` Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
