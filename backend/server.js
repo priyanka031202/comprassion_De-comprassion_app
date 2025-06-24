@@ -57,7 +57,8 @@ app.post("/compress", upload.single("file"), (req, res) => {
     res.json({
       message: "File compressed successfully",
       stats: getStats(fileBuffer, outputBuffer, startTime),
-      fileUrl: `${req.protocol}://${req.get("host")}/outputs/${outputFilename}`,
+      fileUrl: `https://comprassion-de-comprassion-app-2.onrender.com/outputs/${outputFilename}`
+
     });
   } catch (err) {
     console.error("Compression error:", err);
@@ -90,7 +91,8 @@ app.post("/decompress", upload.single("file"), (req, res) => {
         decompressedSize: outputBuffer.length,
         time: Date.now() - startTime,
       },
-      fileUrl: `${req.protocol}://${req.get("host")}/outputs/${outputFilename}`,
+     fileUrl: `https://comprassion-de-comprassion-app-2.onrender.com/outputs/${outputFilename}`
+
     });
   } catch (err) {
     console.error("Decompression error:", err);
