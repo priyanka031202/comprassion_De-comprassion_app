@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+const BACKEND_URL = "https://comprassion-de-comprassion-app-2.onrender.com";
+
 export default function App() {
   const [file, setFile] = useState(null);
   const [mode, setMode] = useState("compress");
@@ -21,55 +23,48 @@ export default function App() {
 
     try {
       setLoading(true);
-      setResult(null);
       setError("");
+      setResult(null);
 
-      const response = await fetch(
-        `https://comprassion-de-comprassion-app-2.onrender.com/${mode}`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const response = await fetch(`${BACKEND_URL}/${mode}`, {
+        method: "POST",
+        body: formData,
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Something went wrong.");
-      } else {
-        setResult(data);
+        throw new Error(data.error || "Server error");
       }
+
+      setResult(data);
     } catch (err) {
-      console.error("Error:", err);
-      setError("Failed to connect to backend.");
+      console.error(err);
+      setError("Something went wrong. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-xl mx-auto bg-white p-6 rounded-lg shadow">
-        <h1 className="text-2xl font-bold mb-4 text-center">
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-lg mx-auto bg-white p-6 rounded shadow">
+        <h2 className="text-xl font-bold mb-4 text-center">
           File {mode === "compress" ? "Compression" : "Decompression"} App
-        </h1>
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="file"
-            onChange={(e) => setFile(e.target.files[0])}
-            className="block w-full border p-2 rounded"
-          />
+          <input type="file" onChange={(e) => setFile(e.target.files[0])} />
 
-          <div className="flex justify-between">
+          <div className="flex gap-4">
             <label>
               <input
                 type="radio"
                 value="compress"
                 checked={mode === "compress"}
                 onChange={() => setMode("compress")}
-              />
-              <span className="ml-2">Compress</span>
+              />{" "}
+              Compress
             </label>
             <label>
               <input
@@ -77,15 +72,15 @@ export default function App() {
                 value="decompress"
                 checked={mode === "decompress"}
                 onChange={() => setMode("decompress")}
-              />
-              <span className="ml-2">Decompress</span>
+              />{" "}
+              Decompress
             </label>
           </div>
 
           <select
             value={algorithm}
             onChange={(e) => setAlgorithm(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="w-full border px-2 py-1"
           >
             <option value="rle">Run-Length Encoding (RLE)</option>
             <option value="huffman">Huffman Coding</option>
@@ -93,7 +88,7 @@ export default function App() {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded"
+            className="bg-blue-600 text-white px-4 py-2 w-full rounded"
             disabled={loading}
           >
             {loading
@@ -106,35 +101,34 @@ export default function App() {
           </button>
         </form>
 
-        {error && (
-          <div className="mt-4 text-red-600 font-medium text-center">{error}</div>
-        )}
+        {error && <p className="text-red-600 mt-4 text-center">{error}</p>}
 
         {result && (
-          <div className="mt-6 bg-gray-50 p-4 border rounded">
-            <h2 className="font-semibold text-lg mb-2">Success</h2>
+          <div className="mt-6 text-sm text-gray-800">
             <p>{result.message}</p>
-            <ul className="mt-2 text-sm text-gray-700 space-y-1">
-              {result.stats.originalSize !== undefined && (
+            <ul className="my-2 space-y-1">
+              {result.stats?.originalSize && (
                 <li>Original Size: {result.stats.originalSize} bytes</li>
               )}
-              {result.stats.compressedSize !== undefined && (
+              {result.stats?.compressedSize && (
                 <li>Compressed Size: {result.stats.compressedSize} bytes</li>
               )}
-              {result.stats.decompressedSize !== undefined && (
+              {result.stats?.decompressedSize && (
                 <li>Decompressed Size: {result.stats.decompressedSize} bytes</li>
               )}
-              {result.stats.ratio !== undefined && (
-                <li>Compression Ratio: {result.stats.ratio.toFixed(2)}%</li>
+              {result.stats?.ratio && (
+                <li>
+                  Compression Ratio: {result.stats.ratio.toFixed(2)}%
+                </li>
               )}
-              <li>Processing Time: {result.stats.time} ms</li>
+              {result.stats?.time && <li>Processing Time: {result.stats.time} ms</li>}
             </ul>
 
             {result.fileUrl && (
               <a
                 href={result.fileUrl}
                 download
-                className="mt-4 inline-block bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                className="inline-block bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
               >
                 ⬇️ Download {mode === "compress" ? "Compressed" : "Decompressed"} File
               </a>
